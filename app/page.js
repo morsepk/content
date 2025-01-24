@@ -143,10 +143,32 @@ export default function Home() {
 
   const downloadImage = async () => {
     if (processedImage) {
-      const a = document.createElement("a");
-      a.href = processedImage.url;
-      a.download = `resized-image.${imageExtension || "jpg"}`;
-      a.click();
+      try {
+        const suggestedName = `resized-image.${imageExtension || "jpg"}`;
+
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: suggestedName,
+          types: [
+            {
+              description: "Image Files",
+              accept: { [`image/${imageExtension}`]: [`.${imageExtension}`] },
+            },
+          ],
+        });
+
+        const writableStream = await fileHandle.createWritable();
+        const response = await fetch(processedImage.url);
+        const blob = await response.blob();
+
+        await writableStream.write(blob);
+        await writableStream.close();
+      } catch (error) {
+        if (error.name === "AbortError") {
+          console.log("User canceled the save dialog");
+        } else {
+          console.error("Error saving the file:", error);
+        }
+      }
     }
   };
 
