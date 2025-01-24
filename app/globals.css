@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.sCursor {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #00ff80;
+    position: fixed;
+    pointer-events: none;
+    transition: all 0.1s linear;
+}
+
+.lCursor {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #00ff8023;
+    position: fixed;
+    pointer-events: none;
+    transition: all 0.3s;
+}
