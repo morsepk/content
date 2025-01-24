@@ -35,7 +35,7 @@ export default function Home() {
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       if (file.type.startsWith("image/")) {
-        setImageExtension(file.name.split('.').pop());
+        setImageExtension(file.name.split(".").pop());
         setIsProcessing(true);
         const compressedResult = await resizeAndCompressImage(file);
         if (compressedResult) {
@@ -48,18 +48,52 @@ export default function Home() {
     }
   };
 
+  const fetchImageAsBlob = (imageUrl) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.responseType = "arraybuffer";
+      xhr.open("GET", imageUrl, true);
+
+      // Retry logic
+      let retries = 3;
+
+      const sendRequest = () => {
+        xhr.onloadend = function () {
+          if (xhr.status.toString().startsWith("2")) {
+            const contentType = xhr.getResponseHeader("Content-Type");
+            resolve(new Blob([xhr.response], { type: contentType }));
+          } else if (xhr.status === 429 && retries > 0) {
+            retries--;
+            console.warn("Rate limited. Retrying...");
+            setTimeout(sendRequest, 2000); // Retry after 2 seconds
+          } else {
+            reject(`Failed to fetch image. Status: ${xhr.status}`);
+          }
+        };
+
+        xhr.onerror = () => reject("Network error occurred while fetching image.");
+        xhr.send();
+      };
+
+      sendRequest(); // Start the request
+    });
+  };
+
   useEffect(() => {
     const handlePaste = async (event) => {
       const clipboardData = event.clipboardData || window.clipboardData;
       const items = clipboardData.items;
 
+      // Check clipboard data
       for (let i = 0; i < items.length; i++) {
-        const file = items[i];
-        if (file.type.startsWith("image/")) {
-          const imageBlob = file.getAsFile();
+        const item = items[i];
+
+        // If it's an image file
+        if (item.type.startsWith("image/")) {
+          const imageBlob = item.getAsFile();
           if (imageBlob) {
-            setImageExtension(imageBlob.name.split('.').pop());
             setIsProcessing(true);
+            setImageExtension(imageBlob.type.split("/")[1] || "jpg");
             const compressedResult = await resizeAndCompressImage(imageBlob);
             if (compressedResult) {
               setProcessedImage(compressedResult);
@@ -67,6 +101,35 @@ export default function Home() {
             setIsProcessing(false);
           }
           break;
+        }
+
+        // If it's HTML content (e.g., from Google Docs)
+        else if (item.type === "text/html") {
+          item.getAsString(async (htmlString) => {
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = htmlString;
+
+            const imgTag = tempDiv.querySelector("img");
+            if (imgTag && imgTag.src) {
+              try {
+                setIsProcessing(true);
+
+                // Fetch the image using XMLHttpRequest
+                const imageBlob = await fetchImageAsBlob(imgTag.src);
+
+                // Process the fetched image
+                const compressedResult = await resizeAndCompressImage(imageBlob);
+                if (compressedResult) {
+                  setProcessedImage(compressedResult);
+                }
+              } catch (error) {
+                console.error("Error fetching or processing image:", error);
+                alert("Failed to process the image. Please try again.");
+              } finally {
+                setIsProcessing(false);
+              }
+            }
+          });
         }
       }
     };
@@ -80,30 +143,10 @@ export default function Home() {
 
   const downloadImage = async () => {
     if (processedImage) {
-      try {
-        const suggestedName = `resized-image.${imageExtension}`;
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: suggestedName,
-          types: [
-            {
-              description: "Image Files",
-              accept: { [`image/${imageExtension}`]: [`.${imageExtension}`] },
-            },
-          ],
-        });
-
-        const writableStream = await fileHandle.createWritable();
-        const response = await fetch(processedImage.url);
-        const blob = await response.blob();
-        await writableStream.write(blob);
-        await writableStream.close();
-      } catch (error) {
-        if (error.name === "AbortError") {
-          console.log("User canceled the save dialog");
-        } else {
-          console.error("Error while saving the file:", error);
-        }
-      }
+      const a = document.createElement("a");
+      a.href = processedImage.url;
+      a.download = `resized-image.${imageExtension || "jpg"}`;
+      a.click();
     }
   };
 
