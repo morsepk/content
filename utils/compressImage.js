@@ -28,12 +28,33 @@ export const resizeAndCompressImage = (file) => {
       // Check if the image has transparency
       const isTransparent = file.type === "image/png";
 
+      const compressAndCheckSize = (blob) => {
+        // If the size of the blob is greater than 100KB, we need to reduce the quality
+        if (blob.size > 100 * 1024) {
+          const quality = 0.7; // Lower the quality slightly to reduce size
+          canvas.toBlob(
+            (newBlob) => {
+              if (newBlob && newBlob.size <= 100 * 1024) {
+                const url = URL.createObjectURL(newBlob);
+                resolve({ url: url, blob: newBlob });
+              } else {
+                compressAndCheckSize(newBlob); // Recurse to compress further if still above 100KB
+              }
+            },
+            isTransparent ? "image/png" : "image/jpeg",
+            isTransparent ? 1.0 : quality
+          );
+        } else {
+          const url = URL.createObjectURL(blob);
+          resolve({ url: url, blob: blob });
+        }
+      };
+
       // Convert the canvas to Blob, retaining transparency if applicable
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const url = URL.createObjectURL(blob);
-            resolve({ url: url, blob: blob });
+            compressAndCheckSize(blob);
           } else {
             reject("Blob creation failed.");
           }
