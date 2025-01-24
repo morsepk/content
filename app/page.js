@@ -119,7 +119,7 @@ export default function Home() {
         <div className="flex items-center justify-center gap-5 h-16 mb-5">
           <img
             className="w-12 hover:shadow-glow transition-all duration-500 bg-transparent rounded-full cursor-pointer"
-            src="/logo.png"
+            src="./logo.png"
             alt="Logo"
           />
           <h1 className="text-3xl font-bold">Image Resizer & Compressor</h1>
