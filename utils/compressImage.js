@@ -1,4 +1,4 @@
-export const resizeAndCompressImage = (file) => {
+export const resizeAndCompressImage = (file, outputFormat = "jpeg") => {
   return new Promise((resolve, reject) => {
     const img = new Image();
 
@@ -12,20 +12,17 @@ export const resizeAndCompressImage = (file) => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
 
-      const width = 825; // Fixed width
+      const width = 825;
       const aspectRatio = img.height / img.width;
       const height = width * aspectRatio;
 
       canvas.width = width;
       canvas.height = height;
 
-      // Clear the canvas to maintain transparency
       ctx.clearRect(0, 0, width, height);
-
-      // Draw the image onto the canvas
       ctx.drawImage(img, 0, 0, width, height);
 
-      const maxBytes = 100 * 1024; // 100 KB
+      const maxBytes = Math.max(100 * 1024, file.size * 0.2);
       const isTransparent = file.type === "image/png";
 
       const compressToTargetSize = (blob, quality = 0.9) => {
@@ -33,39 +30,32 @@ export const resizeAndCompressImage = (file) => {
           const url = URL.createObjectURL(blob);
           resolve({ url: url, blob: blob });
         } else if (quality > 0.1) {
-          // Reduce quality for further compression
           canvas.toBlob(
             (newBlob) => {
               if (newBlob) {
-                compressToTargetSize(newBlob, quality - 0.1);
+                compressToTargetSize(newBlob, quality - 0.05); // Smaller steps
               } else {
                 reject("Blob creation failed during compression.");
               }
             },
-            isTransparent ? "image/webp" : "image/jpeg", // Use WebP for transparent PNGs
+            `image/${outputFormat}`,
             quality
           );
         } else {
-          reject("Unable to compress the image below 100KB.");
+          reject("Unable to compress the image below target size.");
         }
       };
 
-      // Convert the canvas to Blob, starting with high quality
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            // If it's PNG and transparent, start compressing as WebP
-            if (isTransparent) {
-              compressToTargetSize(blob, 0.9); // WebP compression starts with 0.9 quality
-            } else {
-              compressToTargetSize(blob, 0.8); // JPEG compression starts with 0.8 quality
-            }
+            compressToTargetSize(blob, 0.9);
           } else {
             reject("Blob creation failed.");
           }
         },
-        isTransparent ? "image/webp" : "image/jpeg", // WebP for PNG, JPEG for others
-        isTransparent ? 0.9 : 0.8
+        isTransparent ? "image/png" : `image/${outputFormat}`,
+        0.9
       );
     };
 
