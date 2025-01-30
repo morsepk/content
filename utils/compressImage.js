@@ -20,24 +20,23 @@ export const resizeAndCompressImage = (file, fileName) => {
         const hasTransparency = [...imageData.data].some((_, i) => i % 4 === 3 && imageData.data[i] < 255);
         const format = hasTransparency ? 'png' : 'jpeg';
 
-        const compress = (quality = 0.9) => {
-          canvas.toBlob(blob => {
-            if (!blob) return reject('Blob creation failed');
-            
-            if (blob.size <= 100 * 1024 || quality <= 0.5) {
-              resolve({
-                url: URL.createObjectURL(blob),
-                name: fileName,
-                format: format,
-                dimensions: { width: canvas.width, height: canvas.height }
-              });
-            } else {
-              compress(quality - 0.05);
-            }
-          }, `image/${format}`, quality);
-        };
+        // Fixed quality compression
+        const quality = format === 'png' ? 0.8 : 0.75;
 
-        compress(0.9);
+        canvas.toBlob(blob => {
+          if (!blob) return reject('Blob creation failed');
+          
+          if (blob.size > 100 * 1024) {
+            console.warn(`Final size: ${Math.round(blob.size/1024)}KB`);
+          }
+
+          resolve({
+            url: URL.createObjectURL(blob),
+            name: fileName,
+            format: format,
+            dimensions: { width: canvas.width, height: canvas.height }
+          });
+        }, `image/${format}`, quality);
       };
       
       img.onerror = () => reject('Failed to load image');
