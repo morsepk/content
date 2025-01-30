@@ -14,7 +14,8 @@
     "node-fetch": "^3.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-dropzone": "^14.3.5"
+    "react-dropzone": "^14.3.5",
+    "sanitize-html": "^2.14.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

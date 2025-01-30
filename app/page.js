@@ -1,234 +1,204 @@
+// page.js
 'use client';
-
-import { useState, useEffect, useRef } from "react";
-import { useDropzone } from "react-dropzone";
+import { useState, useRef } from "react";
 import { resizeAndCompressImage } from "../utils/compressImage";
+import sanitize from "sanitize-html";
 
 export default function Home() {
-  const [processedImage, setProcessedImage] = useState(null);
+  const [clientName, setClientName] = useState("");
+  const [processedImages, setProcessedImages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageExtension, setImageExtension] = useState("");
+  const [cleanedContent, setCleanedContent] = useState("");
+  const contentEditableRef = useRef(null);
 
-  const sCursorRef = useRef(null);
-  const lCursorRef = useRef(null);
-
-  // Cursor movement logic
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (sCursorRef.current && lCursorRef.current) {
-        sCursorRef.current.style.left = `${e.clientX}px`;
-        sCursorRef.current.style.top = `${e.clientY}px`;
-
-        lCursorRef.current.style.left = `${e.clientX - 20}px`;
-        lCursorRef.current.style.top = `${e.clientY - 20}px`;
-      }
-    };
-
-    document.body.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      document.body.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, []);
-
-  const onDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      if (file.type.startsWith("image/")) {
-        setImageExtension(file.name.split(".").pop());
-        setIsProcessing(true);
-        const compressedResult = await resizeAndCompressImage(file);
-        if (compressedResult) {
-          setProcessedImage(compressedResult);
-        }
-        setIsProcessing(false);
-      } else {
-        alert("Please upload a valid image file.");
-      }
+  const processContent = async () => {
+    if (!clientName.trim()) {
+      alert("Please enter a client name first.");
+      return;
     }
-  };
 
-  const fetchImageAsBlob = (imageUrl) => {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.responseType = "arraybuffer";
-      xhr.open("GET", imageUrl, true);
+    setIsProcessing(true);
+    try {
+      const rawHTML = contentEditableRef.current.innerHTML;
 
-      // Retry logic
-      let retries = 3;
-
-      const sendRequest = () => {
-        xhr.onloadend = function () {
-          if (xhr.status.toString().startsWith("2")) {
-            const contentType = xhr.getResponseHeader("Content-Type");
-            resolve(new Blob([xhr.response], { type: contentType }));
-          } else if (xhr.status === 429 && retries > 0) {
-            retries--;
-            console.warn("Rate limited. Retrying...");
-            setTimeout(sendRequest, 2000); // Retry after 2 seconds
-          } else {
-            reject(`Failed to fetch image. Status: ${xhr.status}`);
-          }
-        };
-
-        xhr.onerror = () => reject("Network error occurred while fetching image.");
-        xhr.send();
-      };
-
-      sendRequest(); // Start the request
-    });
-  };
-
-  useEffect(() => {
-    const handlePaste = async (event) => {
-      const clipboardData = event.clipboardData || window.clipboardData;
-      const items = clipboardData.items;
-
-      // Check clipboard data
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-
-        // If it's an image file
-        if (item.type.startsWith("image/")) {
-          const imageBlob = item.getAsFile();
-          if (imageBlob) {
-            setIsProcessing(true);
-            setImageExtension(imageBlob.type.split("/")[1] || "jpg");
-            const compressedResult = await resizeAndCompressImage(imageBlob);
-            if (compressedResult) {
-              setProcessedImage(compressedResult);
+      // Clean HTML content
+      const cleanedHTML = sanitize(rawHTML, {
+        allowedTags: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li'],
+        allowedAttributes: {
+          'a': ['href', 'rel', 'target'],
+          'h1': ['style'], 'h2': ['style'], 'h3': ['style'], 'p': ['style']
+        },
+        transformTags: {
+          'a': (tagName, attribs) => ({
+            tagName,
+            attribs: {
+              ...attribs,
+              rel: attribs.href?.includes('youtube.com') || 
+                   attribs.href?.includes('twitter.com') ? 
+                   undefined : 'nofollow',
+              target: '_blank'
             }
-            setIsProcessing(false);
-          }
-          break;
+          })
         }
+      });
 
-        // If it's HTML content (e.g., from Google Docs)
-        else if (item.type === "text/html") {
-          item.getAsString(async (htmlString) => {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = htmlString;
+      setCleanedContent(cleanedHTML);
 
-            const imgTag = tempDiv.querySelector("img");
-            if (imgTag && imgTag.src) {
-              try {
-                setIsProcessing(true);
+      // Process images separately
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = rawHTML;
+      const images = tempDiv.querySelectorAll('img');
+      const date = new Date();
+      const month = date.toLocaleString('default', { month: 'short' });
+      const day = date.getDate();
 
-                // Fetch the image using XMLHttpRequest
-                const imageBlob = await fetchImageAsBlob(imgTag.src);
-
-                // Process the fetched image
-                const compressedResult = await resizeAndCompressImage(imageBlob);
-                if (compressedResult) {
-                  setProcessedImage(compressedResult);
-                }
-              } catch (error) {
-                console.error("Error fetching or processing image:", error);
-                alert("Failed to process the image. Please try again.");
-              } finally {
-                setIsProcessing(false);
+      const imageProcessing = Array.from(images).map(async (img, index) => {
+        try {
+          // Convert dataURL to Blob
+          const blob = await fetch(img.src)
+            .then(r => r.blob())
+            .catch(() => {
+              const byteString = atob(img.src.split(',')[1]);
+              const mimeString = img.src.split(',')[0].split(':')[1].split(';')[0];
+              const ab = new ArrayBuffer(byteString.length);
+              const ia = new Uint8Array(ab);
+              for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
               }
-            }
-          });
+              return new Blob([ab], { type: mimeString });
+            });
+
+          return await resizeAndCompressImage(blob, `${clientName} ${month} ${day}-${index + 1}`);
+        } catch (error) {
+          console.error(`Error processing image ${index + 1}:`, error);
+          return null;
         }
-      }
-    };
+      });
 
-    window.addEventListener("paste", handlePaste);
+      const processedImages = (await Promise.all(imageProcessing)).filter(Boolean);
+      setProcessedImages(processedImages);
 
-    return () => {
-      window.removeEventListener("paste", handlePaste);
-    };
-  }, []);
-
-  const downloadImage = async () => {
-    if (processedImage) {
-      try {
-        const suggestedName = `resized-image.${imageExtension || "jpg"}`;
-
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: suggestedName,
-          types: [
-            {
-              description: "Image Files",
-              accept: { [`image/${imageExtension}`]: [`.${imageExtension}`] },
-            },
-          ],
-        });
-
-        const writableStream = await fileHandle.createWritable();
-        const response = await fetch(processedImage.url);
-        const blob = await response.blob();
-
-        await writableStream.write(blob);
-        await writableStream.close();
-      } catch (error) {
-        if (error.name === "AbortError") {
-          console.log("User canceled the save dialog");
-        } else {
-          console.error("Error saving the file:", error);
-        }
-      }
+    } catch (error) {
+      console.error("Processing failed:", error);
+      alert("Error processing content. Please check the console.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+  const copyHTML = async () => {
+    try {
+      await navigator.clipboard.writeText(cleanedContent);
+      alert("HTML copied to clipboard!");
+    } catch (error) {
+      console.error("Copy failed:", error);
+      const textarea = document.createElement('textarea');
+      textarea.value = cleanedContent;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  };
+
+  const downloadImage = async (image) => {
+    try {
+      const link = document.createElement('a');
+      link.href = image.url;
+      link.download = image.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
 
   return (
-    <>
-      {/* Custom Cursors */}
-      <div ref={sCursorRef} className="sCursor"></div>
-      <div ref={lCursorRef} className="lCursor"></div>
+    <main className="min-h-screen bg-black text-white flex flex-col items-center p-6">
+      <h1 className="text-3xl font-bold mb-6">Content Processor</h1>
 
-      <main className="min-h-[93vh] bg-black text-white flex flex-col items-center justify-center p-4">
-        <div className="flex items-center justify-center gap-5 h-16 mb-5">
-          <img
-            className="w-12 hover:shadow-glow transition-all duration-500 bg-transparent rounded-full cursor-pointer"
-            src="./logo.png"
-            alt="Logo"
-          />
-          <h1 className="text-3xl font-bold">Image Resizer & Compressor</h1>
-        </div>
+      <input
+        type="text"
+        placeholder="Enter Client Name"
+        value={clientName}
+        onChange={(e) => setClientName(e.target.value)}
+        className="mb-4 p-2 w-96 border border-gray-400 rounded text-black"
+        required
+      />
 
-        <div
-          {...getRootProps()}
-          className="w-96 h-48 border-2 border-dashed border-white rounded-lg p-6 bg-transparent text-center cursor-pointer"
-        >
-          <input {...getInputProps()} />
-          <p className="text-gray-600">
-            Drag & drop an image here, or click to select a file.
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            You can also press <strong>Ctrl+V</strong> to paste an image.
-          </p>
-        </div>
+      <div
+        ref={contentEditableRef}
+        className="w-full max-w-4xl h-96 border-2 border-dashed border-white rounded-lg p-6 mb-6 
+                 bg-white text-black overflow-auto"
+        contentEditable
+        placeholder="Paste your formatted content here (text + images)..."
+        onPaste={(e) => {
+          const items = e.clipboardData.items;
+          for (const item of items) {
+            if (item.type.startsWith('image/')) {
+              const blob = item.getAsFile();
+              const reader = new FileReader();
+              reader.onload = () => {
+                const img = document.createElement('img');
+                img.src = reader.result;
+                document.execCommand('insertHTML', false, img.outerHTML);
+              };
+              reader.readAsDataURL(blob);
+            }
+          }
+        }}
+      ></div>
 
-        {isProcessing && (
-          <p className="mt-4 text-blue-500">Processing your image...</p>
-        )}
+      <button 
+        onClick={processContent}
+        disabled={isProcessing}
+        className="mb-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
+      >
+        {isProcessing ? 'Processing...' : 'Process Content'}
+      </button>
 
-        {processedImage && (
-          <div className="mt-6">
-            <img
-              src={processedImage.url}
-              alt="Processed"
-              className="w-full max-w-sm rounded-lg border"
-            />
-            <button
-              onClick={downloadImage}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow"
+      {cleanedContent && (
+        <div className="w-full max-w-4xl mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Cleaned Content</h2>
+            <button 
+              onClick={copyHTML}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              Download Image
+              Copy HTML
             </button>
           </div>
-        )}
-      </main>
+          <div 
+            className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black"
+            dangerouslySetInnerHTML={{ __html: cleanedContent }}
+          />
+        </div>
+      )}
 
-      <footer className="flex items-center justify-center text-center text-white bg-[#232323] h-[7vh] max-h-[7vh]">
-        <p>
-          Built with ❤️ by <span className="font-bold">Mark Maverick</span>
-        </p>
-      </footer>
-    </>
+      {processedImages.length > 0 && (
+        <div className="w-full max-w-4xl">
+          <h2 className="text-xl font-semibold mb-4">Processed Images</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {processedImages.map((image, index) => (
+              <div key={index} className="text-center bg-gray-800 p-4 rounded-lg">
+                <img 
+                  src={image.url} 
+                  alt="Processed" 
+                  className="w-full h-48 object-contain mb-2 rounded"
+                />
+                <p className="text-sm mb-2">{image.name}.{image.format}</p>
+                <button 
+                  onClick={() => downloadImage(image)}
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Download
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
