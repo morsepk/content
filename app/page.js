@@ -2,7 +2,6 @@
 'use client';
 import { useState, useRef, useEffect } from "react";
 import { resizeAndCompressImage } from "../utils/compressImage";
-import sanitize from "sanitize-html";
 
 export default function Home() {
   const [clientName, setClientName] = useState("");
@@ -26,54 +25,36 @@ export default function Home() {
     setIsProcessing(true);
     try {
       const rawHTML = contentEditableRef.current.innerHTML;
-
-      const cleanedHTML = sanitize(rawHTML, {
-        allowedTags: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'br'],
-        allowedAttributes: {
-          'a': ['href', 'rel', 'target'],
-          'h1': ['style'], 'h2': ['style'], 'h3': ['style'], 'p': ['style']
-        },
-        transformTags: {
-          'a': (tagName, attribs) => {
-            const isEmbedded = [
-              'youtube.com', 'youtu.be',
-              'twitter.com', 'x.com',
-              'vimeo.com', 'instagram.com'
-            ].some(domain => attribs.href?.includes(domain));
-
-            return {
-              tagName,
-              attribs: {
-                ...attribs,
-                rel: isEmbedded ? undefined : 'nofollow',
-                target: isEmbedded ? undefined : '_blank'
-              }
-            };
-          },
-          'p': (tagName, attribs) => {
-            const style = attribs.style || '';
-            const fontSizeMatch = style.match(/font-size:\s*(\d+)px/);
-            const fontSize = fontSizeMatch ? parseInt(fontSizeMatch[1]) : 0;
-            
-            if (fontSize > 24) return { tagName: 'h1', attribs: {} };
-            if (fontSize > 20) return { tagName: 'h2', attribs: {} };
-            if (fontSize > 18) return { tagName: 'h3', attribs: {} };
-            return { tagName, attribs };
-          }
+      
+      // Process links
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = rawHTML;
+      
+      // Add nofollow and target blank to non-embedded links
+      tempDiv.querySelectorAll('a').forEach(a => {
+        const href = a.href;
+        const isEmbedded = [
+          'youtube.com', 'youtu.be',
+          'twitter.com', 'x.com',
+          'vimeo.com', 'instagram.com'
+        ].some(domain => href.includes(domain));
+        
+        if (!isEmbedded) {
+          a.rel = 'nofollow';
+          a.target = '_blank';
         }
       });
 
-      setCleanedContent(cleanedHTML);
+      // Remove images from cleaned content
+      tempDiv.querySelectorAll('img').forEach(img => img.remove());
+      setCleanedContent(tempDiv.innerHTML);
 
-      // Process images
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = rawHTML;
-      const images = tempDiv.querySelectorAll('img');
+      // Process images separately
+      const images = contentEditableRef.current.querySelectorAll('img');
       const date = new Date();
       const month = date.toLocaleString('default', { month: 'short' });
       const day = date.getDate();
 
-      // Get/create image index
       const storageKey = `client-${cleanClientName}`;
       let lastIndex = parseInt(localStorage.getItem(storageKey)) || 0;
 
@@ -107,7 +88,6 @@ export default function Home() {
       const processedImages = (await Promise.all(imageProcessing)).filter(Boolean);
       setProcessedImages(processedImages);
       
-      // Update storage
       localStorage.setItem('lastClient', cleanClientName);
       localStorage.setItem(storageKey, lastIndex + images.length);
 
@@ -119,7 +99,7 @@ export default function Home() {
     }
   };
 
-  const handlePaste = async (e) => {
+  const handlePaste = (e) => {
     const items = e.clipboardData.items;
     for (const item of items) {
       if (item.type.startsWith('image/')) {
@@ -139,26 +119,13 @@ export default function Home() {
     }
   };
 
-  const copyHTML = async () => {
-    try {
-      await navigator.clipboard.writeText(cleanedContent);
-      alert("HTML copied to clipboard!");
-    } catch (error) {
-      const textarea = document.createElement('textarea');
-      textarea.value = cleanedContent;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.body.removeChild(textarea);
-      alert("HTML copied to clipboard!");
-    }
-  };
-
   const downloadImage = async (image) => {
     try {
       const link = document.createElement('a');
       link.href = image.url;
       link.download = `${image.name}.${image.format}`;
       
+      // Trigger browser's native save dialog
       if (window.showSaveFilePicker) {
         const handle = await window.showSaveFilePicker({
           suggestedName: link.download,
@@ -215,13 +182,7 @@ export default function Home() {
       {cleanedContent && (
         <div className="w-full max-w-4xl mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Cleaned Content</h2>
-            <button 
-              onClick={copyHTML}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Copy HTML
-            </button>
+            <h2 className="text-xl font-semibold">Processed Content</h2>
           </div>
           <div 
             className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black"

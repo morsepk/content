@@ -26,10 +26,6 @@ export const resizeAndCompressImage = (file, fileName) => {
         canvas.toBlob(blob => {
           if (!blob) return reject('Blob creation failed');
           
-          if (blob.size > 100 * 1024) {
-            console.warn(`Final size: ${Math.round(blob.size/1024)}KB`);
-          }
-
           resolve({
             url: URL.createObjectURL(blob),
             name: fileName,
