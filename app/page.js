@@ -1,4 +1,3 @@
-// page.js
 'use client';
 import { useState, useRef, useEffect } from "react";
 import { resizeAndCompressImage } from "../utils/compressImage";
@@ -47,16 +46,7 @@ export default function Home() {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = rawHTML;
 
-      // Remove images and empty containers
-      tempDiv.querySelectorAll('img').forEach(img => {
-        const container = img.parentElement;
-        img.remove();
-        if (container && !container.textContent.trim() && container.children.length === 0) {
-          container.remove();
-        }
-      });
-
-      // Process links
+      // Process links (add nofollow and target _blank)
       tempDiv.querySelectorAll('a').forEach(a => {
         const href = a.href;
         const isEmbedded = [
@@ -71,16 +61,19 @@ export default function Home() {
         }
       });
 
-      // Clean empty elements
-      tempDiv.querySelectorAll('*').forEach(el => {
-        if (!el.innerHTML.trim() && el.children.length === 0) {
-          el.remove();
+      // Remove images and empty containers
+      tempDiv.querySelectorAll('img').forEach(img => {
+        const container = img.parentElement;
+        img.remove();
+        if (container && !container.textContent.trim() && container.children.length === 0) {
+          container.remove();
         }
       });
 
+      // Set processed content with updated links
       setProcessedContent(tempDiv.innerHTML);
 
-      // Process images
+      // Process ALL images
       const images = contentEditableRef.current.querySelectorAll('img');
       const date = new Date();
       const month = date.toLocaleString('default', { month: 'short' });
@@ -93,6 +86,7 @@ export default function Home() {
         try {
           let blob;
           if (img.src.startsWith('data:')) {
+            // Handle data URLs
             const byteString = atob(img.src.split(',')[1]);
             const mimeType = img.src.split(':')[1].split(';')[0];
             const ab = new ArrayBuffer(byteString.length);
@@ -100,7 +94,10 @@ export default function Home() {
             for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
             blob = new Blob([ab], { type: mimeType });
           } else {
-            blob = await fetch(img.src).then(r => r.blob());
+            // Handle external images
+            const response = await fetch(img.src);
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+            blob = await response.blob();
           }
 
           const imageNumber = lastIndex + index + 1;
