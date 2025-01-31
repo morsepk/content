@@ -43,11 +43,71 @@ export default function Home() {
 
     setIsProcessing(true);
     try {
-      const rawHTML = contentEditableRef.current.innerHTML;
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = rawHTML;
+      const contentEditable = contentEditableRef.current;
+      const images = Array.from(contentEditable.querySelectorAll('img'));
+      
+      // Reset processed images
+      setProcessedImages([]);
 
-      // Remove images and empty containers
+      const date = new Date();
+      const month = date.toLocaleString('default', { month: 'short' });
+      const day = date.getDate();
+      const storageKey = `client-${cleanClientName}`;
+      let lastIndex = parseInt(localStorage.getItem(storageKey)) || 0;
+
+      // Process all images
+      const imagePromises = images.map(async (img, index) => {
+        try {
+          let blob;
+          if (img.src.startsWith('data:')) {
+            const byteString = atob(img.src.split(',')[1]);
+            const mimeType = img.src.split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            blob = new Blob([ab], { type: mimeType });
+          } else {
+            const response = await fetch(`https://cors-anywhere.herokuapp.com/${img.src}`);
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+            blob = await response.blob();
+          }
+
+          const imageNumber = lastIndex + index + 1;
+          const result = await resizeAndCompressImage(
+            blob,
+            `${cleanClientName}-${month}-${day}-${imageNumber}`
+          );
+          
+          return { ...result, index };
+        } catch (error) {
+          console.error(`Image ${index + 1} failed:`, error);
+          return { error: `Image ${index + 1}: ${error.message}`, index };
+        }
+      });
+
+      const results = await Promise.all(imagePromises);
+      
+      // Separate successful images and errors
+      const successfulImages = results.filter(r => !r.error);
+      const errorMessages = results.filter(r => r.error).map(r => r.error);
+      
+      if (errorMessages.length > 0) {
+        alert(`Some images failed to process:\n${errorMessages.join('\n')}`);
+      }
+
+      // Sort images by original order and update state
+      setProcessedImages(prev => [...prev, ...successfulImages]
+        .sort((a, b) => a.index - b.index));
+
+      // Update storage
+      localStorage.setItem('lastClient', cleanClientName);
+      localStorage.setItem(storageKey, lastIndex + images.length);
+
+      // Process content text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = contentEditable.innerHTML;
+      
+      // Remove all images and empty containers
       tempDiv.querySelectorAll('img').forEach(img => {
         const container = img.parentElement;
         img.remove();
@@ -71,54 +131,7 @@ export default function Home() {
         }
       });
 
-      // Clean empty elements
-      tempDiv.querySelectorAll('*').forEach(el => {
-        if (!el.innerHTML.trim() && el.children.length === 0) {
-          el.remove();
-        }
-      });
-
       setProcessedContent(tempDiv.innerHTML);
-
-      // Process images
-      const images = contentEditableRef.current.querySelectorAll('img');
-      const date = new Date();
-      const month = date.toLocaleString('default', { month: 'short' });
-      const day = date.getDate();
-
-      const storageKey = `client-${cleanClientName}`;
-      let lastIndex = parseInt(localStorage.getItem(storageKey)) || 0;
-
-      const imageProcessing = Array.from(images).map(async (img, index) => {
-        try {
-          let blob;
-          if (img.src.startsWith('data:')) {
-            const byteString = atob(img.src.split(',')[1]);
-            const mimeType = img.src.split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-            blob = new Blob([ab], { type: mimeType });
-          } else {
-            blob = await fetch(img.src).then(r => r.blob());
-          }
-
-          const imageNumber = lastIndex + index + 1;
-          return await resizeAndCompressImage(
-            blob, 
-            `${cleanClientName}-${month}-${day}-${imageNumber}`
-          );
-        } catch (error) {
-          console.error(`Image ${index + 1} failed:`, error);
-          return null;
-        }
-      });
-
-      const processedImages = (await Promise.all(imageProcessing)).filter(Boolean);
-      setProcessedImages(processedImages);
-      
-      localStorage.setItem('lastClient', cleanClientName);
-      localStorage.setItem(storageKey, lastIndex + images.length);
 
     } catch (error) {
       console.error("Processing failed:", error);
@@ -128,24 +141,28 @@ export default function Home() {
     }
   };
 
-  const copyText = async () => {
+  const copyFormattedText = async () => {
     try {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = processedContent;
-      const textContent = tempDiv.textContent
-        .replace(/\n\s*\n/g, '\n')
-        .replace(/ +/g, ' ')
-        .trim();
+      const htmlContent = processedContent;
+      const plainContent = new DOMParser()
+        .parseFromString(htmlContent, 'text/html')
+        .body.textContent || "";
+      
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([htmlContent], { type: 'text/html' }),
+        'text/plain': new Blob([plainContent], { type: 'text/plain' })
+      });
 
-      await navigator.clipboard.writeText(textContent);
-      alert("Text copied to clipboard!");
+      await navigator.clipboard.write([clipboardItem]);
+      alert("Formatted content copied to clipboard!");
     } catch (error) {
       const textarea = document.createElement('textarea');
       textarea.value = processedContent;
       document.body.appendChild(textarea);
       textarea.select();
+      document.execCommand('copy');
       document.body.removeChild(textarea);
-      alert("Text copied to clipboard!");
+      alert("Content copied to clipboard!");
     }
   };
 
@@ -173,6 +190,7 @@ export default function Home() {
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error("Download failed:", error);
+        alert(`Download failed: ${error.message}`);
       }
     }
   };
@@ -213,10 +231,10 @@ export default function Home() {
             <div dangerouslySetInnerHTML={{ __html: processedContent }} />
             <div className="mt-4 flex justify-end">
               <button 
-                onClick={copyText}
+                onClick={copyFormattedText}
                 className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
-                Copy Text
+                Copy Formatted Content
               </button>
             </div>
           </div>
@@ -226,7 +244,7 @@ export default function Home() {
       {processedImages.length > 0 && (
         <div className="w-full max-w-4xl">
           <h2 className="text-xl font-semibold mb-4">Processed Images</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {processedImages.map((image, index) => (
               <div key={index} className="text-center bg-gray-800 p-4 rounded-lg">
                 <img 
@@ -235,11 +253,14 @@ export default function Home() {
                   className="w-full h-48 object-contain mb-2 rounded"
                 />
                 <p className="text-sm mb-2">{image.name}.{image.format}</p>
+                <p className="text-xs text-gray-400 mb-2">
+                  {Math.round(image.size/1024)}KB - {image.dimensions.width}x{image.dimensions.height}
+                </p>
                 <button 
                   onClick={() => downloadImage(image)}
                   className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Download ({Math.round(image.size/1024)}KB)
+                  Download
                 </button>
               </div>
             ))}
