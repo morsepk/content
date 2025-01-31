@@ -7,7 +7,7 @@ export default function Home() {
   const [clientName, setClientName] = useState("");
   const [processedImages, setProcessedImages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cleanedContent, setCleanedContent] = useState("");
+  const [processedContent, setProcessedContent] = useState("");
   const contentEditableRef = useRef(null);
 
   useEffect(() => {
@@ -25,12 +25,19 @@ export default function Home() {
     setIsProcessing(true);
     try {
       const rawHTML = contentEditableRef.current.innerHTML;
-      
-      // Process links
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = rawHTML;
-      
-      // Add nofollow and target blank to non-embedded links
+
+      // Remove images and their containers
+      tempDiv.querySelectorAll('img').forEach(img => {
+        const container = img.parentElement;
+        img.remove();
+        if (container && !container.textContent.trim() && container.children.length === 0) {
+          container.remove();
+        }
+      });
+
+      // Process links
       tempDiv.querySelectorAll('a').forEach(a => {
         const href = a.href;
         const isEmbedded = [
@@ -45,11 +52,16 @@ export default function Home() {
         }
       });
 
-      // Remove images from cleaned content
-      tempDiv.querySelectorAll('img').forEach(img => img.remove());
-      setCleanedContent(tempDiv.innerHTML);
+      // Clean up empty elements
+      tempDiv.querySelectorAll('div, p, span').forEach(el => {
+        if (!el.innerHTML.trim() && el.children.length === 0) {
+          el.remove();
+        }
+      });
 
-      // Process images separately
+      setProcessedContent(tempDiv.innerHTML);
+
+      // Process images
       const images = contentEditableRef.current.querySelectorAll('img');
       const date = new Date();
       const month = date.toLocaleString('default', { month: 'short' });
@@ -66,9 +78,7 @@ export default function Home() {
             const mimeType = img.src.split(':')[1].split(';')[0];
             const ab = new ArrayBuffer(byteString.length);
             const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-              ia[i] = byteString.charCodeAt(i);
-            }
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
             blob = new Blob([ab], { type: mimeType });
           } else {
             blob = await fetch(img.src).then(r => r.blob());
@@ -113,22 +123,36 @@ export default function Home() {
           img.src = reader.result;
           range.insertNode(img);
         };
-        
         reader.readAsDataURL(blob);
       }
     }
   };
 
+  const copyText = async () => {
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = processedContent;
+      const textContent = tempDiv.textContent
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+
+      await navigator.clipboard.writeText(textContent);
+      alert("Text copied to clipboard!");
+    } catch (error) {
+      const textarea = document.createElement('textarea');
+      textarea.value = processedContent;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.body.removeChild(textarea);
+      alert("Text copied to clipboard!");
+    }
+  };
+
   const downloadImage = async (image) => {
     try {
-      const link = document.createElement('a');
-      link.href = image.url;
-      link.download = `${image.name}.${image.format}`;
-      
-      // Trigger browser's native save dialog
       if (window.showSaveFilePicker) {
         const handle = await window.showSaveFilePicker({
-          suggestedName: link.download,
+          suggestedName: `${image.name}.${image.format}`,
           types: [{
             description: 'Image Files',
             accept: { [`image/${image.format}`]: [`.${image.format}`] }
@@ -138,6 +162,9 @@ export default function Home() {
         await writable.write(await fetch(image.url).then(r => r.blob()));
         await writable.close();
       } else {
+        const link = document.createElement('a');
+        link.href = image.url;
+        link.download = `${image.name}.${image.format}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -167,7 +194,7 @@ export default function Home() {
         className="w-full max-w-4xl h-96 border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto"
         contentEditable
-        placeholder="Paste your formatted content here (text + images)..."
+        placeholder="Paste your content here (text + images)..."
         onPaste={handlePaste}
       ></div>
 
@@ -179,14 +206,20 @@ export default function Home() {
         {isProcessing ? 'Processing...' : 'Process Content'}
       </button>
 
-      {cleanedContent && (
+      {processedContent && (
         <div className="w-full max-w-4xl mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Processed Content</h2>
+            <button 
+              onClick={copyText}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              Copy Text
+            </button>
           </div>
           <div 
             className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black"
-            dangerouslySetInnerHTML={{ __html: cleanedContent }}
+            dangerouslySetInnerHTML={{ __html: processedContent }}
           />
         </div>
       )}
