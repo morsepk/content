@@ -15,6 +15,25 @@ export default function Home() {
     if (savedClient) setClientName(savedClient);
   }, []);
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const range = document.getSelection().getRangeAt(0);
+          const img = document.createElement('img');
+          img.src = reader.result;
+          range.insertNode(img);
+        };
+        reader.readAsDataURL(blob);
+      }
+    }
+  };
+
   const processContent = async () => {
     const cleanClientName = clientName.trim().toLowerCase();
     if (!cleanClientName) {
@@ -28,7 +47,7 @@ export default function Home() {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = rawHTML;
 
-      // Remove images and their containers
+      // Remove images and empty containers
       tempDiv.querySelectorAll('img').forEach(img => {
         const container = img.parentElement;
         img.remove();
@@ -52,8 +71,8 @@ export default function Home() {
         }
       });
 
-      // Clean up empty elements
-      tempDiv.querySelectorAll('div, p, span').forEach(el => {
+      // Clean empty elements
+      tempDiv.querySelectorAll('*').forEach(el => {
         if (!el.innerHTML.trim() && el.children.length === 0) {
           el.remove();
         }
@@ -109,31 +128,13 @@ export default function Home() {
     }
   };
 
-  const handlePaste = (e) => {
-    const items = e.clipboardData.items;
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        e.preventDefault();
-        const blob = item.getAsFile();
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          const range = document.getSelection().getRangeAt(0);
-          const img = document.createElement('img');
-          img.src = reader.result;
-          range.insertNode(img);
-        };
-        reader.readAsDataURL(blob);
-      }
-    }
-  };
-
   const copyText = async () => {
     try {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = processedContent;
       const textContent = tempDiv.textContent
         .replace(/\n\s*\n/g, '\n')
+        .replace(/ +/g, ' ')
         .trim();
 
       await navigator.clipboard.writeText(textContent);
@@ -208,19 +209,17 @@ export default function Home() {
 
       {processedContent && (
         <div className="w-full max-w-4xl mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Processed Content</h2>
-            <button 
-              onClick={copyText}
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Copy Text
-            </button>
+          <div className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black">
+            <div dangerouslySetInnerHTML={{ __html: processedContent }} />
+            <div className="mt-4 flex justify-end">
+              <button 
+                onClick={copyText}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                Copy Text
+              </button>
+            </div>
           </div>
-          <div 
-            className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black"
-            dangerouslySetInnerHTML={{ __html: processedContent }}
-          />
         </div>
       )}
 
@@ -240,7 +239,7 @@ export default function Home() {
                   onClick={() => downloadImage(image)}
                   className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Download
+                  Download ({Math.round(image.size/1024)}KB)
                 </button>
               </div>
             ))}
