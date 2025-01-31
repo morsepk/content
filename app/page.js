@@ -46,7 +46,7 @@ export default function Home() {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = rawHTML;
 
-      // Process links (add nofollow and target _blank)
+      // Process links and clean formatting
       tempDiv.querySelectorAll('a').forEach(a => {
         const href = a.href;
         const isEmbedded = [
@@ -59,6 +59,9 @@ export default function Home() {
           a.rel = 'nofollow';
           a.target = '_blank';
         }
+        // Remove inline styles for WordPress compatibility
+        a.removeAttribute('style');
+        a.removeAttribute('class');
       });
 
       // Remove images and empty containers
@@ -70,7 +73,6 @@ export default function Home() {
         }
       });
 
-      // Set processed content with updated links
       setProcessedContent(tempDiv.innerHTML);
 
       // Process ALL images
@@ -86,7 +88,6 @@ export default function Home() {
         try {
           let blob;
           if (img.src.startsWith('data:')) {
-            // Handle data URLs
             const byteString = atob(img.src.split(',')[1]);
             const mimeType = img.src.split(':')[1].split(';')[0];
             const ab = new ArrayBuffer(byteString.length);
@@ -94,7 +95,6 @@ export default function Home() {
             for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
             blob = new Blob([ab], { type: mimeType });
           } else {
-            // Handle external images
             const response = await fetch(img.src);
             if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
             blob = await response.blob();
@@ -127,22 +127,26 @@ export default function Home() {
 
   const copyText = async () => {
     try {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = processedContent;
-      const textContent = tempDiv.textContent
-        .replace(/\n\s*\n/g, '\n')
-        .replace(/ +/g, ' ')
-        .trim();
+      const htmlContent = processedContent;
+      const plainContent = new DOMParser()
+        .parseFromString(htmlContent, 'text/html')
+        .body.textContent || "";
+      
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([htmlContent], { type: 'text/html' }),
+        'text/plain': new Blob([plainContent], { type: 'text/plain' })
+      });
 
-      await navigator.clipboard.writeText(textContent);
-      alert("Text copied to clipboard!");
+      await navigator.clipboard.write([clipboardItem]);
+      alert("Formatted content copied to clipboard!");
     } catch (error) {
       const textarea = document.createElement('textarea');
       textarea.value = processedContent;
       document.body.appendChild(textarea);
       textarea.select();
+      document.execCommand('copy');
       document.body.removeChild(textarea);
-      alert("Text copied to clipboard!");
+      alert("Content copied as plain text!");
     }
   };
 
@@ -170,6 +174,7 @@ export default function Home() {
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error("Download failed:", error);
+        alert(`Download failed: ${error.message}`);
       }
     }
   };
@@ -213,7 +218,7 @@ export default function Home() {
                 onClick={copyText}
                 className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
-                Copy Text
+                Copy Formatted Text
               </button>
             </div>
           </div>
@@ -223,7 +228,7 @@ export default function Home() {
       {processedImages.length > 0 && (
         <div className="w-full max-w-4xl">
           <h2 className="text-xl font-semibold mb-4">Processed Images</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {processedImages.map((image, index) => (
               <div key={index} className="text-center bg-gray-800 p-4 rounded-lg">
                 <img 
@@ -232,11 +237,14 @@ export default function Home() {
                   className="w-full h-48 object-contain mb-2 rounded"
                 />
                 <p className="text-sm mb-2">{image.name}.{image.format}</p>
+                <p className="text-xs text-gray-400 mb-2">
+                  {Math.round(image.size/1024)}KB - {image.dimensions.width}x{image.dimensions.height}
+                </p>
                 <button 
                   onClick={() => downloadImage(image)}
                   className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Download ({Math.round(image.size/1024)}KB)
+                  Download
                 </button>
               </div>
             ))}
