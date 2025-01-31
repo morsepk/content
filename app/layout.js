@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Image Resizer - MIT Solutions",
-  description: "An Image resizer and compressor built with Next.js which can save you time and bandwidth."
+  title: "Content Processor - MIT Solutions developed by Mark Maverick",
+  description: "A Tool to Make Article Writer's Life Easy."
 };
 
 export default function RootLayout({ children }) {
