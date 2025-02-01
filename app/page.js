@@ -160,6 +160,7 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white flex flex-col items-center p-6">
       <h1 className="text-3xl font-bold mb-6">Content Processor</h1>
 
+    <div className="flex items-center justify-center gap-5">
       <input
         type="text"
         placeholder="Enter Client Name"
@@ -168,16 +169,6 @@ export default function Home() {
         className="mb-4 p-2 w-96 border border-gray-400 rounded text-black"
         required
       />
-
-      <div
-        ref={contentEditableRef}
-        className="w-full max-w-4xl h-96 border-2 border-dashed border-white rounded-lg p-6 mb-6 
-                 bg-white text-black overflow-auto"
-        contentEditable
-        placeholder="Paste your content here (text + images)..."
-        onPaste={handlePaste}
-      ></div>
-
       <button 
         onClick={processContent}
         disabled={isProcessing}
@@ -186,9 +177,22 @@ export default function Home() {
         {isProcessing ? 'Processing...' : 'Process Content'}
       </button>
 
-      {processedContent && (
-        <div className="w-full max-w-4xl mb-8">
-          <div className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black">
+      </div>
+
+
+      <div className="textHandle w-full h-[80vh] flex items-center justify-center gap-5">
+      <div
+        ref={contentEditableRef}
+        className="w-1/2 h-[75vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+                 bg-white text-black overflow-auto"
+        contentEditable
+        placeholder="Paste your content here (text + images)..."
+        onPaste={handlePaste}
+      ></div>
+
+{processedContent && (
+          <div className="prose w-1/2 h-[75vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+                 bg-white text-black overflow-auto">
             <div
               ref={outputEditableRef}
               contentEditable
@@ -196,12 +200,13 @@ export default function Home() {
               className="outline-none"
             />
           </div>
-        </div>
       )}
-
+      
+      </div>
+      <div className="imagesHandle mx-12 w-full">
       {processedImages.length > 0 && (
         <div className="w-full max-w-4xl">
-          <h2 className="text-xl font-semibold mb-4">Processed Images</h2>
+          <h2 className="text-3xl font-semibold mb-4">Processed Images</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {processedImages.map((image, index) => (
               <div key={index} className="text-center bg-gray-800 p-4 rounded-lg">
@@ -225,6 +230,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }
