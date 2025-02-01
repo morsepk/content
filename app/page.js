@@ -8,6 +8,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedContent, setProcessedContent] = useState("");
   const contentEditableRef = useRef(null);
+  const outputEditableRef = useRef(null);
 
   useEffect(() => {
     const savedClient = localStorage.getItem('lastClient');
@@ -126,31 +127,6 @@ export default function Home() {
     }
   };
 
-  const copyText = async () => {
-    try {
-      const htmlContent = processedContent;
-      const plainContent = new DOMParser()
-        .parseFromString(htmlContent, 'text/html')
-        .body.textContent || "";
-      
-      const clipboardItem = new ClipboardItem({
-        'text/html': new Blob([htmlContent], { type: 'text/html' }),
-        'text/plain': new Blob([plainContent], { type: 'text/plain' })
-      });
-
-      await navigator.clipboard.write([clipboardItem]);
-      alert("Formatted content copied to clipboard!");
-    } catch (error) {
-      const textarea = document.createElement('textarea');
-      textarea.value = processedContent;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      alert("Content copied as plain text!");
-    }
-  };
-
   const downloadImage = async (image) => {
     try {
       if (window.showSaveFilePicker) {
@@ -213,15 +189,12 @@ export default function Home() {
       {processedContent && (
         <div className="w-full max-w-4xl mb-8">
           <div className="prose max-w-none bg-white p-6 rounded-lg border border-gray-200 text-black">
-            <div dangerouslySetInnerHTML={{ __html: processedContent }} />
-            <div className="mt-4 flex justify-end">
-              <button 
-                onClick={copyText}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-              >
-                Copy Formatted Text
-              </button>
-            </div>
+            <div
+              ref={outputEditableRef}
+              contentEditable
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+              className="outline-none"
+            />
           </div>
         </div>
       )}
