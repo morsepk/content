@@ -9,6 +9,7 @@ export default function Home() {
   const [processedContent, setProcessedContent] = useState("");
   const contentEditableRef = useRef(null);
   const outputEditableRef = useRef(null);
+  const [selected, setSelected] = useState("Sponsored");
 
   useEffect(() => {
     const savedClient = localStorage.getItem('lastClient');
@@ -33,6 +34,10 @@ export default function Home() {
       }
     }
   };
+  const handleReload = () => {
+    location.reload();
+  }
+  
 
   const processContent = async () => {
     const cleanClientName = clientName.trim().toLowerCase();
@@ -157,22 +162,33 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center p-6">
-      <h1 className="text-3xl font-bold mb-6">Content Processor</h1>
+    <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
+      <div onClick={handleReload} className="w-12 h-12 font-extrabold text-4xl flex items-center justify-center rounded-full cursor-pointer bg-blue-600 fixed bottom-12 right-12">&#8593;</div>
 
-    <div className="flex items-center justify-center gap-5">
+    <div className="getClient flex items-center justify-center mb-1 gap-x-5">
       <input
         type="text"
         placeholder="Enter Client Name"
         value={clientName}
         onChange={(e) => setClientName(e.target.value)}
-        className="mb-4 p-2 w-96 border border-gray-400 rounded text-black"
+        className="p-2 w-96 border border-gray-400 rounded text-black"
         required
       />
+       <div className="p-4 border rounded-lg">
+       <label className="flex items-center cursor-pointer text-black">
+        <input
+          type="checkbox"
+          checked={selected === "Sponsored"}
+          onChange={() => setSelected(selected === "Post" ? "Sponsored" : "Post")}
+          className="mr-2"
+        />
+        Add Disclaimer
+      </label>
+    </div>
       <button 
         onClick={processContent}
         disabled={isProcessing}
-        className="mb-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
+        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
       >
         {isProcessing ? 'Processing...' : 'Process Content'}
       </button>
@@ -190,7 +206,7 @@ export default function Home() {
         onPaste={handlePaste}
       ></div>
 
-{processedContent && (
+
           <div className="prose w-1/2 h-[75vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto">
             <div
@@ -200,23 +216,23 @@ export default function Home() {
               className="outline-none"
             />
           </div>
-      )}
+ 
       
       </div>
-      <div className="imagesHandle mx-12 w-full">
+      <div className="imagesHandle w-full">
       {processedImages.length > 0 && (
-        <div className="w-full max-w-4xl">
-          <h2 className="text-3xl font-semibold mb-4">Processed Images</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full">
+          <h2 className="text-3xl text-black font-semibold mb-4">Processed Images</h2>
+          <div className="grid grid-cols-5 gap-4">
             {processedImages.map((image, index) => (
-              <div key={index} className="text-center bg-gray-800 p-4 rounded-lg">
+              <div key={index} className="text-center bg-[#d3d3d3] p-4 rounded-lg">
                 <img 
                   src={image.url} 
                   alt="Processed" 
                   className="w-full h-48 object-contain mb-2 rounded"
                 />
-                <p className="text-sm mb-2">{image.name}.{image.format}</p>
-                <p className="text-xs text-gray-400 mb-2">
+                <p className="text-sm text-black font-semibold mb-2">{image.name}.{image.format}</p>
+                <p className="text-xs text-gray-600 mb-2">
                   {Math.round(image.size/1024)}KB - {image.dimensions.width}x{image.dimensions.height}
                 </p>
                 <button 
