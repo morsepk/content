@@ -227,7 +227,6 @@ export default function Home() {
       <div className="imagesHandle w-full">
         {processedImages.length > 0 && (
           <div className="w-full">
-            <h2 className="text-3xl text-black font-semibold mb-4">Processed Images</h2>
             <div className="grid grid-cols-5 gap-4">
               {processedImages.map((image, index) => (
                 <div key={index} className="text-center bg-[#d3d3d3] p-4 rounded-lg">
