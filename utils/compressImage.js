@@ -21,31 +21,25 @@ export const resizeAndCompressImage = (file, fileName) => {
         const format = hasTransparency ? 'png' : 'jpg';
 
         if (format === 'png') {
-          // Use aggressive compression for PNGs
+          // Compress PNG as much as possible, but always return the image
           const processPNG = (quality = 0.7, attempt = 0) => {
             canvas.toBlob(blob => {
               if (!blob) return reject('Blob creation failed');
 
-              if (blob.size <= 100 * 1024) {
-                resolve({
-                  url: URL.createObjectURL(blob),
-                  name: fileName,
-                  format: 'png',
-                  size: blob.size,
-                  dimensions: { width: targetWidth, height: targetHeight }
-                });
-              } else {
-                if (attempt < 5) {
-                  return processPNG(quality - 0.1, attempt + 1);
-                }
-                reject('PNG could not be compressed under 100KB');
-              }
+              // Always resolve, even if size is above 100KB
+              resolve({
+                url: URL.createObjectURL(blob),
+                name: fileName,
+                format: 'png',
+                size: blob.size,
+                dimensions: { width: targetWidth, height: targetHeight }
+              });
             }, 'image/png', quality);
           };
 
           processPNG();
         } else {
-          // Use quality reduction for JPGs
+          // For JPGs, enforce size under 100KB
           const processJPG = (quality = 0.8, attempt = 0) => {
             canvas.toBlob(blob => {
               if (!blob) return reject('Blob creation failed');
