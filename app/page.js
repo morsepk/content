@@ -59,12 +59,12 @@ export default function Home() {
           a.rel = 'nofollow';
           a.target = '_blank';
         }
-        // Remove inline styles for WordPress compatibility
+        // Remove inline styles and classes
         a.removeAttribute('style');
         a.removeAttribute('class');
       });
 
-      // Remove images and empty containers
+      // Remove empty image containers
       tempDiv.querySelectorAll('img').forEach(img => {
         const container = img.parentElement;
         img.remove();
@@ -73,9 +73,11 @@ export default function Home() {
         }
       });
 
-      setProcessedContent(tempDiv.innerHTML);
+      // Store processed HTML with proper link attributes
+      const processedHTML = tempDiv.innerHTML;
+      setProcessedContent(processedHTML);
 
-      // Process ALL images
+      // Process images with fixed 825px width
       const images = contentEditableRef.current.querySelectorAll('img');
       const date = new Date();
       const month = date.toLocaleString('default', { month: 'short' });
@@ -96,7 +98,6 @@ export default function Home() {
             blob = new Blob([ab], { type: mimeType });
           } else {
             const response = await fetch(img.src);
-            if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
             blob = await response.blob();
           }
 
