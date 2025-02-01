@@ -21,8 +21,8 @@ export const resizeAndCompressImage = (file, fileName) => {
         const format = hasTransparency ? 'png' : 'jpg';
 
         if (format === 'png') {
-          // Use the method from your provided code for PNGs
-          const processPNG = (quality = 0.7, dimensionAttempt = 0) => {
+          // Use aggressive compression for PNGs
+          const processPNG = (quality = 0.7, attempt = 0) => {
             canvas.toBlob(blob => {
               if (!blob) return reject('Blob creation failed');
 
@@ -35,30 +35,17 @@ export const resizeAndCompressImage = (file, fileName) => {
                   dimensions: { width: targetWidth, height: targetHeight }
                 });
               } else {
-                if (dimensionAttempt < 5) {
-                  const newWidth = Math.floor(targetWidth * 0.85);
-                  const newHeight = Math.floor(newWidth * (img.height / img.width));
-                  canvas.width = newWidth;
-                  canvas.height = newHeight;
-                  ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                  return processPNG(quality, dimensionAttempt + 1);
+                if (attempt < 5) {
+                  return processPNG(quality - 0.1, attempt + 1);
                 }
-                canvas.toBlob(fallbackBlob => {
-                  resolve({
-                    url: URL.createObjectURL(fallbackBlob),
-                    name: fileName,
-                    format: 'png',
-                    size: fallbackBlob.size,
-                    dimensions: { width: targetWidth, height: targetHeight }
-                  });
-                }, 'image/png', 0.5);
+                reject('PNG could not be compressed under 100KB');
               }
             }, 'image/png', quality);
           };
 
           processPNG();
         } else {
-          // Use the current method for JPGs
+          // Use quality reduction for JPGs
           const processJPG = (quality = 0.8, attempt = 0) => {
             canvas.toBlob(blob => {
               if (!blob) return reject('Blob creation failed');
