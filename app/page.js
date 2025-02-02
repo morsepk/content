@@ -197,6 +197,21 @@ export default function Home() {
       });
 
 
+      // Remove all instances of non-breaking spaces (&nbsp;)
+      const allElements = doc.querySelectorAll('*');
+      allElements.forEach((element) => {
+        // Check and replace all instances of &nbsp; with an empty string
+        element.innerHTML = element.innerHTML.replace(/\u00A0/g, '').replace(/&nbsp;/g, '');
+      });
+
+
+      // remove br tags
+      const lineBreaks = doc.querySelectorAll('br');
+      lineBreaks.forEach((br) => {
+        br.remove();
+      });
+
+
       // Function to process each element and wrap text nodes
       const processElement = (element) => {
         const style = element.getAttribute('style') || '';
