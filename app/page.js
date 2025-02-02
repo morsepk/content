@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from "react";
+import { html } from 'js-beautify';
 import { resizeAndCompressImage } from "../utils/compressImage";
 
 export default function Home() {
@@ -39,6 +40,7 @@ export default function Home() {
     location.reload();
   };
 
+
   const processContent = async () => {
     const cleanClientName = clientName.trim().toLowerCase();
     if (!cleanClientName) {
@@ -51,6 +53,11 @@ export default function Home() {
       const rawHTML = contentEditableRef.current.innerHTML;
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = rawHTML;
+
+
+
+      
+
 
       // Process links and clean formatting
       tempDiv.querySelectorAll("a").forEach((a) => {
@@ -83,7 +90,7 @@ export default function Home() {
 
       // If "Sponsored" checkbox is checked, add the disclaimer
       if (selected === "Sponsored") {
-        processedHTML += `
+        processedHTML += ` 
           <hr>
           <p style="text-align: center; font-style: italic; margin-top: 15px;">
             This article is sponsored content. All information is provided by the sponsor and Brave New Coin (BNC) does not endorse or assume responsibility for the content presented, which is not part of BNC’s editorial. Investing in crypto assets involves significant risk, including the potential loss of principal, and readers are strongly encouraged to conduct their own due diligence before engaging with any company or product mentioned. Brave New Coin disclaims any liability for any damages or losses arising from reliance on the content provided in this article.
@@ -170,6 +177,119 @@ export default function Home() {
     }
   };
 
+
+
+
+  // Handle "Copy HTML" action
+  const handleCopyHTML = () => {
+    try {
+      let htmlContent = processedContent;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+  
+      // Function to process each element and wrap text nodes
+      const processElement = (element) => {
+        const style = element.getAttribute('style') || '';
+  
+        // Parse font-weight
+        let fontWeight = null;
+        const fontWeightMatch = style.match(/font-weight\s*:\s*(bold|\d+)/i);
+        if (fontWeightMatch) {
+          const value = fontWeightMatch[1].toLowerCase();
+          fontWeight = value === 'bold' ? 700 : parseInt(value, 10);
+        }
+  
+        // Parse font-style
+        let fontStyle = null;
+        const fontStyleMatch = style.match(/font-style\s*:\s*(italic)/i);
+        if (fontStyleMatch) {
+          fontStyle = fontStyleMatch[1].toLowerCase();
+        }
+  
+        // Wrap in <strong> if font-weight > 400
+        if (fontWeight && fontWeight >= 700) {
+          const strong = document.createElement('strong');
+          strong.innerHTML = element.innerHTML;
+          element.innerHTML = '';
+          element.appendChild(strong);
+        }
+  
+        // Wrap in <em> if font-style is italic
+        if (fontStyle === 'italic') {
+          const em = document.createElement('em');
+          em.innerHTML = element.innerHTML;
+          element.innerHTML = '';
+          element.appendChild(em);
+        }
+        
+        // Recursively process child elements
+        Array.from(element.children).forEach(processElement);
+      };
+  
+      // Process the root element (body)
+      processElement(doc.body);
+  
+      // Step 2: Remove 'dir="ltr"' and filter styles
+      const elementsWithDir = doc.querySelectorAll('[dir="ltr"]');
+      elementsWithDir.forEach((element) => {
+        element.removeAttribute('dir');
+      });
+  
+      const elementsWithStyle = doc.querySelectorAll('[style]');
+      elementsWithStyle.forEach((element) => {
+        const currentStyle = element.getAttribute('style');
+        
+        // Filter to preserve only "text-align: center"
+        const updatedStyle = currentStyle
+          .split(';')
+          .filter(style => style.includes('text-align: center'))
+          .join(';');
+  
+        if (updatedStyle) {
+          element.setAttribute('style', updatedStyle);
+        } else {
+          element.removeAttribute('style');
+        }
+      });
+  
+      // Beautify HTML
+      htmlContent = doc.body.innerHTML;
+  
+      const beautifiedHTML = html(htmlContent, {
+        indent_size: 2,
+        preserve_newlines: true,
+        max_preserve_newlines: 1,
+      });
+  
+      // Copy to clipboard
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(beautifiedHTML).then(() => {
+          alert('Formatted HTML content copied to clipboard!');
+        }).catch((error) => {
+          console.error('Failed to copy:', error);
+          alert('Failed to copy formatted HTML content.');
+        });
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = beautifiedHTML;
+        textArea.style.position = 'absolute'; 
+        textArea.style.opacity = 0;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Formatted HTML content copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error copying formatted HTML:', error);
+      alert('An error occurred while copying formatted HTML content.');
+    }
+  };
+   
+  
+
+
+  
   return (
     <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
       <div onClick={handleReload} className="w-12 h-12 font-extrabold text-4xl flex items-center justify-center rounded-full cursor-pointer bg-blue-600 fixed bottom-12 right-12">&#8593;</div>
@@ -223,6 +343,14 @@ export default function Home() {
           />
         </div>
       </div>
+
+      {/* Add Copy HTML Button */}
+      <button
+        onClick={handleCopyHTML}
+        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        Copy HTML
+      </button>
 
       <div className="imagesHandle w-full">
         {processedImages.length > 0 && (
