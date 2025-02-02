@@ -24,7 +24,7 @@ export default function Home() {
         e.preventDefault();
         const blob = item.getAsFile();
         const reader = new FileReader();
-        
+
         reader.onload = () => {
           const range = document.getSelection().getRangeAt(0);
           const img = document.createElement('img');
@@ -56,7 +56,7 @@ export default function Home() {
 
 
 
-      
+
 
 
       // Process links and clean formatting
@@ -186,11 +186,21 @@ export default function Home() {
       let htmlContent = processedContent;
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, 'text/html');
-  
+
+
+      // Remove empty <span> elements
+      const emptySpans = doc.querySelectorAll('span');
+      emptySpans.forEach((span) => {
+        if (!span.innerHTML.trim()) {
+          span.remove();
+        }
+      });
+
+
       // Function to process each element and wrap text nodes
       const processElement = (element) => {
         const style = element.getAttribute('style') || '';
-  
+
         // Parse font-weight
         let fontWeight = null;
         const fontWeightMatch = style.match(/font-weight\s*:\s*(bold|\d+)/i);
@@ -198,14 +208,14 @@ export default function Home() {
           const value = fontWeightMatch[1].toLowerCase();
           fontWeight = value === 'bold' ? 700 : parseInt(value, 10);
         }
-  
+
         // Parse font-style
         let fontStyle = null;
         const fontStyleMatch = style.match(/font-style\s*:\s*(italic)/i);
         if (fontStyleMatch) {
           fontStyle = fontStyleMatch[1].toLowerCase();
         }
-  
+
         // Wrap in <strong> if font-weight > 400
         if (fontWeight && fontWeight >= 700) {
           const strong = document.createElement('strong');
@@ -213,7 +223,7 @@ export default function Home() {
           element.innerHTML = '';
           element.appendChild(strong);
         }
-  
+
         // Wrap in <em> if font-style is italic
         if (fontStyle === 'italic') {
           const em = document.createElement('em');
@@ -221,46 +231,46 @@ export default function Home() {
           element.innerHTML = '';
           element.appendChild(em);
         }
-        
+
         // Recursively process child elements
         Array.from(element.children).forEach(processElement);
       };
-  
+
       // Process the root element (body)
       processElement(doc.body);
-  
+
       // Step 2: Remove 'dir="ltr"' and filter styles
       const elementsWithDir = doc.querySelectorAll('[dir="ltr"]');
       elementsWithDir.forEach((element) => {
         element.removeAttribute('dir');
       });
-  
+
       const elementsWithStyle = doc.querySelectorAll('[style]');
       elementsWithStyle.forEach((element) => {
         const currentStyle = element.getAttribute('style');
-        
+
         // Filter to preserve only "text-align: center"
         const updatedStyle = currentStyle
           .split(';')
           .filter(style => style.includes('text-align: center'))
           .join(';');
-  
+
         if (updatedStyle) {
           element.setAttribute('style', updatedStyle);
         } else {
           element.removeAttribute('style');
         }
       });
-  
+
       // Beautify HTML
       htmlContent = doc.body.innerHTML;
-  
+
       const beautifiedHTML = html(htmlContent, {
         indent_size: 2,
         preserve_newlines: true,
         max_preserve_newlines: 1,
       });
-  
+
       // Copy to clipboard
       if (navigator.clipboard) {
         navigator.clipboard.writeText(beautifiedHTML).then(() => {
@@ -272,7 +282,7 @@ export default function Home() {
       } else {
         const textArea = document.createElement("textarea");
         textArea.value = beautifiedHTML;
-        textArea.style.position = 'absolute'; 
+        textArea.style.position = 'absolute';
         textArea.style.opacity = 0;
         document.body.appendChild(textArea);
         textArea.select();
@@ -285,11 +295,11 @@ export default function Home() {
       alert('An error occurred while copying formatted HTML content.');
     }
   };
-   
-  
 
 
-  
+
+
+
   return (
     <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
       <div onClick={handleReload} className="w-12 h-12 font-extrabold text-4xl flex items-center justify-center rounded-full cursor-pointer bg-blue-600 fixed bottom-12 right-12">&#8593;</div>
@@ -314,7 +324,7 @@ export default function Home() {
             Add Disclaimer
           </label>
         </div>
-        <button 
+        <button
           onClick={processContent}
           disabled={isProcessing}
           className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
@@ -358,16 +368,16 @@ export default function Home() {
             <div className="grid grid-cols-5 gap-4">
               {processedImages.map((image, index) => (
                 <div key={index} className="text-center bg-[#d3d3d3] p-4 rounded-lg">
-                  <img 
-                    src={image.url} 
-                    alt="Processed" 
+                  <img
+                    src={image.url}
+                    alt="Processed"
                     className="w-full h-48 object-contain mb-2 rounded"
                   />
                   <p className="text-sm text-black font-semibold mb-2">{image.name}.{image.format}</p>
                   <p className="text-xs text-gray-600 mb-2">
-                    {Math.round(image.size/1024)}KB - {image.dimensions.width}x{image.dimensions.height}
+                    {Math.round(image.size / 1024)}KB - {image.dimensions.width}x{image.dimensions.height}
                   </p>
-                  <button 
+                  <button
                     onClick={() => downloadImage(image)}
                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
