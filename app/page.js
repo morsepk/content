@@ -188,12 +188,32 @@ export default function Home() {
 
 
       // Remove empty <span> elements
-      const emptySpans = doc.querySelectorAll('span');
-      emptySpans.forEach((span) => {
-        if (!span.innerHTML.trim()) {
-          span.remove();
+      // const emptySpans = doc.querySelectorAll('span');
+      // emptySpans.forEach((span) => {
+      //   if (!span.innerHTML.trim()) {
+      //     span.remove();
+      //   }
+      // });
+
+
+      // Unwrap all span elements (remove span but keep contents)
+      doc.querySelectorAll('span').forEach((span) => {
+        const parent = span.parentNode;
+        while (span.firstChild) {
+          parent.insertBefore(span.firstChild, span);
+        }
+        parent.removeChild(span);
+      });
+
+      // Remove empty anchor tags
+      doc.querySelectorAll('a').forEach((a) => {
+        if (!a.innerHTML.trim()) {
+          a.remove();
         }
       });
+
+
+
 
       const emptyanchors = doc.querySelectorAll('a');
       emptyanchors.forEach((a) => {
