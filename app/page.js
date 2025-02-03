@@ -7,6 +7,7 @@ export default function Home() {
   const [clientName, setClientName] = useState("");
   const [processedImages, setProcessedImages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   const [processedContent, setProcessedContent] = useState("");
   const contentEditableRef = useRef(null);
   const outputEditableRef = useRef(null);
@@ -182,6 +183,9 @@ export default function Home() {
   // Handle "Copy HTML" action
   const handleCopyHTML = () => {
     try {
+
+      setIsCopying(true)
+
       let htmlContent = processedContent;
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, 'text/html');
@@ -195,7 +199,7 @@ export default function Home() {
       //   }
       // });
 
-    
+
       // Unwrap all span elements (remove span but keep contents)
       doc.querySelectorAll('span').forEach((span) => {
         const parent = span.parentNode;
@@ -259,7 +263,7 @@ export default function Home() {
         }
       });
 
-      
+
 
       const emptyP = doc.querySelectorAll('p');
       emptyP.forEach((p) => {
@@ -360,7 +364,9 @@ export default function Home() {
       // Copy to clipboard
       if (navigator.clipboard) {
         navigator.clipboard.writeText(beautifiedHTML).then(() => {
-          alert('Formatted HTML content copied to clipboard!');
+          setTimeout(() => {
+            setIsCopying(false); // Reset button text after 2 seconds
+          }, 50);
         }).catch((error) => {
           console.error('Failed to copy:', error);
           alert('Failed to copy formatted HTML content.');
@@ -417,19 +423,26 @@ export default function Home() {
         >
           {isProcessing ? 'Processing...' : 'Process Content'}
         </button>
+        {/* Add Copy HTML Button */}
+      <button
+        onClick={handleCopyHTML}
+        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        {isCopying ? 'Copying⏳...' : 'Copy HTML'}
+      </button>
       </div>
 
-      <div className="textHandle w-full h-[80vh] flex items-center justify-center gap-5">
+      <div className="textHandle w-full h-[52vh] flex items-center justify-center gap-5">
         <div
           ref={contentEditableRef}
-          className="w-1/2 h-[75vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+          className="w-1/2 h-[50vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto"
           contentEditable
           placeholder="Paste your content here (text + images)..."
           onPaste={handlePaste}
         ></div>
 
-        <div className="prose w-1/2 h-[75vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+        <div className="prose w-1/2 h-[50vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto">
           <div
             ref={outputEditableRef}
@@ -440,20 +453,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Add Copy HTML Button */}
-      <button
-        onClick={handleCopyHTML}
-        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-      >
-        Copy HTML
-      </button>
+      
+      
 
       <div className="imagesHandle w-full">
         {processedImages.length > 0 && (
           <div className="w-full">
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-6 gap-4">
               {processedImages.map((image, index) => (
-                <div key={index} className="text-center bg-[#d3d3d3] p-4 rounded-lg">
+                <div key={index} className="text-center bg-[#d3d3d3] p-2 rounded-lg">
                   <img
                     src={image.url}
                     alt="Processed"
