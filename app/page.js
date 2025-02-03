@@ -432,17 +432,17 @@ export default function Home() {
       </button>
       </div>
 
-      <div className="textHandle w-full h-[62vh] flex items-center justify-center gap-5">
+      <div className="textHandle w-full h-[69vh] flex items-center justify-center gap-x-5">
         <div
           ref={contentEditableRef}
-          className="w-1/2 h-[60vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+          className="w-1/2 h-[67vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto"
           contentEditable
           placeholder="Paste your content here (text + images)..."
           onPaste={handlePaste}
         ></div>
 
-        <div className="prose w-1/2 h-[60vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
+        <div className="prose w-1/2 h-[67vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
                  bg-white text-black overflow-auto">
           <div
             ref={outputEditableRef}
