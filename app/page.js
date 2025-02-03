@@ -195,7 +195,7 @@ export default function Home() {
       //   }
       // });
 
-
+    
       // Unwrap all span elements (remove span but keep contents)
       doc.querySelectorAll('span').forEach((span) => {
         const parent = span.parentNode;
@@ -221,7 +221,53 @@ export default function Home() {
           a.remove();
         }
       });
+      // Remove empty <span> elements
+      const emptyH1 = doc.querySelectorAll('h1');
+      emptyH1.forEach((h1) => {
+        if (!h1.innerHTML.trim()) {
+          h1.remove();
+        }
+      });
+      const emptyH2 = doc.querySelectorAll('h2');
+      emptyH2.forEach((h2) => {
+        if (!h2.innerHTML.trim()) {
+          h2.remove();
+        }
+      });
+      const emptyH3 = doc.querySelectorAll('h3');
+      emptyH3.forEach((h3) => {
+        if (!h3.innerHTML.trim()) {
+          h3.remove();
+        }
+      });
+      const emptyH4 = doc.querySelectorAll('h4');
+      emptyH4.forEach((h4) => {
+        if (!h4.innerHTML.trim()) {
+          h4.remove();
+        }
+      });
+      const emptyH5 = doc.querySelectorAll('h5');
+      emptyH5.forEach((h5) => {
+        if (!h5.innerHTML.trim()) {
+          h5.remove();
+        }
+      });
+      const emptyH6 = doc.querySelectorAll('h6');
+      emptyH6.forEach((h6) => {
+        if (!h6.innerHTML.trim()) {
+          h6.remove();
+        }
+      });
 
+      
+
+      const emptyP = doc.querySelectorAll('p');
+      emptyP.forEach((p) => {
+        if (!p.innerHTML.trim()) {
+          p.remove();
+        }
+      });
+      console.log(doc)
 
       // Remove all instances of non-breaking spaces (&nbsp;)
       const allElements = doc.querySelectorAll('*');
@@ -272,7 +318,6 @@ export default function Home() {
           element.innerHTML = '';
           element.appendChild(em);
         }
-
         // Recursively process child elements
         Array.from(element.children).forEach(processElement);
       };
