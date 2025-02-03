@@ -41,9 +41,13 @@ export default function Home() {
     location.reload();
   };
 
-
+  function formatName(name) {
+    if (!name) return "";
+    name = name.toLowerCase(); // Convert to lowercase
+    return name.charAt(0).toUpperCase() + name.slice(1); // Capitalize first letter
+}
   const processContent = async () => {
-    const cleanClientName = clientName.trim().toLowerCase();
+    const cleanClientName = formatName(clientName.trim());
     if (!cleanClientName) {
       alert("Please enter a client name first.");
       return;
