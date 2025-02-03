@@ -11,7 +11,7 @@ export default function Home() {
   const [processedContent, setProcessedContent] = useState("");
   const contentEditableRef = useRef(null);
   const outputEditableRef = useRef(null);
-  const [selected, setSelected] = useState("Sponsored");
+  const [selected, setSelected] = useState("Add Disclaimer");
 
   useEffect(() => {
     const savedClient = localStorage.getItem('lastClient');
@@ -64,9 +64,7 @@ export default function Home() {
       tempDiv.querySelectorAll("a").forEach((a) => {
         const href = a.href;
         const isEmbedded = [
-          "youtube.com", "youtu.be",
-          "twitter.com", "x.com",
-          "vimeo.com", "instagram.com"
+          "mark.local"
         ].some(domain => href.includes(domain));
 
         if (!isEmbedded) {
@@ -90,7 +88,7 @@ export default function Home() {
       let processedHTML = tempDiv.innerHTML;
 
       // If "Sponsored" checkbox is checked, add the disclaimer
-      if (selected === "Sponsored") {
+      if (selected === "Add Disclaimer") {
         processedHTML += ` 
           <hr />
           <p style="text-align: center;"><em>This article is sponsored content. All information is provided by the sponsor and Brave New Coin (BNC) does not endorse or assume responsibility for the content presented, which is not part of BNC’s editorial. Investing in crypto assets involves significant risk, including the potential loss of principal, and readers are strongly encouraged to conduct their own due diligence before engaging with any company or product mentioned. Brave New Coin disclaims any liability for any damages or losses arising from reliance on the content provided in this article.
@@ -405,32 +403,61 @@ export default function Home() {
           className="p-2 w-96 border border-gray-400 rounded text-black"
           required
         />
-        <div className="p-4 border rounded-lg">
-          <label className="flex items-center cursor-pointer text-black">
+        <div className="border rounded-lg">
+          <label className={`flex items-center ${selected === "Add Disclaimer" ? "bg-blue-600" : "bg-red-600"} px-3 w-40 py-2 select-none rounded-lg cursor-pointer text-white font-bold`}>
             <input
               type="checkbox"
-              checked={selected === "Sponsored"}
-              onChange={() => setSelected(selected === "Post" ? "Sponsored" : "Post")}
+              checked={selected === "Add Disclaimer"}
+              onChange={() => setSelected(selected === "No Disclaimer" ? "Add Disclaimer" : "No Disclaimer")}
               className="mr-2"
             />
-            Add Disclaimer
+            {selected}
           </label>
         </div>
         <button
           onClick={processContent}
           disabled={isProcessing}
-          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
+          className="px-3 py-2 bg-blue-600 font-bold text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-500"
         >
           {isProcessing ? 'Processing...' : 'Process Content'}
         </button>
         {/* Add Copy HTML Button */}
-      <button
-        onClick={handleCopyHTML}
-        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-      >
-        {isCopying ? 'Copying⏳...' : 'Copy HTML'}
-      </button>
+        <button
+          onClick={handleCopyHTML}
+          className="px-3 py-2 bg-blue-600 font-bold text-white rounded-lg hover:bg-blue-700"
+        >
+          {isCopying ? 'Copying⏳...' : 'Copy HTML'}
+        </button>
       </div>
+
+      <div className="imagesHandle w-full my-7">
+        {processedImages.length > 0 && (
+          <div className="w-full">
+            <div className="grid grid-cols-6 gap-4">
+              {processedImages.map((image, index) => (
+                <div key={index} className="text-center bg-[#d3d3d3] p-2 rounded-lg">
+                  <img
+                    src={image.url}
+                    alt="Processed"
+                    className="w-full h-48 object-contain mb-2 rounded"
+                  />
+                  <p className="text-sm text-black font-semibold mb-2">{image.name}.{image.format}</p>
+                  <p className="text-xs text-gray-600 mb-2">
+                    {Math.round(image.size / 1024)}KB - {image.dimensions.width}x{image.dimensions.height}
+                  </p>
+                  <button
+                    onClick={() => downloadImage(image)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700"
+                  >
+                    Download
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
 
       <div className="textHandle w-full h-[69vh] flex items-center justify-center gap-x-5">
         <div
@@ -453,36 +480,10 @@ export default function Home() {
         </div>
       </div>
 
-      
-      
 
-      <div className="imagesHandle w-full">
-        {processedImages.length > 0 && (
-          <div className="w-full">
-            <div className="grid grid-cols-6 gap-4">
-              {processedImages.map((image, index) => (
-                <div key={index} className="text-center bg-[#d3d3d3] p-2 rounded-lg">
-                  <img
-                    src={image.url}
-                    alt="Processed"
-                    className="w-full h-48 object-contain mb-2 rounded"
-                  />
-                  <p className="text-sm text-black font-semibold mb-2">{image.name}.{image.format}</p>
-                  <p className="text-xs text-gray-600 mb-2">
-                    {Math.round(image.size / 1024)}KB - {image.dimensions.width}x{image.dimensions.height}
-                  </p>
-                  <button
-                    onClick={() => downloadImage(image)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Download
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+
+
+
     </main>
   );
 }
