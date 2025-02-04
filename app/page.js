@@ -129,7 +129,7 @@ export default function Home() {
           const imageNumber = lastIndex + index + 1;
           return await resizeAndCompressImage(
             blob,
-            `${cleanClientName} ${month}-${day}-${imageNumber}`
+            `${cleanClientName} ${month} ${day}-${imageNumber}`
           );
         } catch (error) {
           console.error(`Image ${index + 1} failed:`, error);
