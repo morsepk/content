@@ -403,7 +403,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
       
 
-      <div className="getClient flex items-center justify-start mb-1 gap-x-5">
+      <div className="getClient flex items-center justify-start self-start mb-1 gap-x-5">
         <input
           type="text"
           placeholder="Enter Client Name"
