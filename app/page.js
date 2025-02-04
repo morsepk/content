@@ -42,10 +42,15 @@ export default function Home() {
   };
 
   function formatName(name) {
-    if (!name) return "";
-    name = name.toLowerCase(); // Convert to lowercase
-    return name.charAt(0).toUpperCase() + name.slice(1); // Capitalize first letter
+  const nameParts = name.trim().split(/\s+/);
+  if (nameParts.length === 1) {
+    return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
+  }
+  const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
+  const lastName = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase();
+  return `${firstName} ${lastName}`;
 }
+  
   const processContent = async () => {
     const cleanClientName = formatName(clientName.trim());
     if (!cleanClientName) {
