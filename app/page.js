@@ -401,9 +401,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
-      <div onClick={handleReload} className="w-12 h-12 font-extrabold text-4xl flex items-center justify-center rounded-full cursor-pointer bg-blue-600 fixed bottom-12 right-12">&#8593;</div>
+      
 
-      <div className="getClient flex items-center justify-center mb-1 gap-x-5">
+      <div className="getClient flex items-center justify-start mb-1 gap-x-5">
         <input
           type="text"
           placeholder="Enter Client Name"
@@ -437,6 +437,7 @@ export default function Home() {
         >
           {isCopying ? 'Copying⏳...' : 'Copy HTML'}
         </button>
+          <div onClick={handleReload} className="w-12 h-12 font-extrabold text-4xl flex items-center justify-center rounded-full cursor-pointer bg-orange-600">&#8593;</div>
       </div>
 
       <div className="imagesHandle w-full my-7">
