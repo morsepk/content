@@ -41,15 +41,25 @@ export default function Home() {
     location.reload();
   };
 
-  function formatName(name) {
-  const nameParts = name.trim().split(/\s+/);
-  if (nameParts.length === 1) {
-    return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
+ function formatName(name) {
+    const nameParts = name.trim().split(/\s+/);
+    
+    // Capitalize each part of the name
+    const formattedParts = nameParts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase());
+    
+    // Handle different lengths of names (up to four parts)
+    if (formattedParts.length === 1) {
+      return formattedParts[0];
+    } else if (formattedParts.length === 2) {
+      return `${formattedParts[0]} ${formattedParts[1]}`;
+    } else if (formattedParts.length === 3) {
+      return `${formattedParts[0]} ${formattedParts[1]} ${formattedParts[2]}`;
+    } else if (formattedParts.length === 4) {
+      return `${formattedParts[0]} ${formattedParts[1]} ${formattedParts[2]} ${formattedParts[3]}`;
+    }
+    
+    return formattedParts.join(' ');
   }
-  const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-  const lastName = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase();
-  return `${firstName} ${lastName}`;
-}
   
   const processContent = async () => {
     const cleanClientName = formatName(clientName.trim());
