@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { html } from 'js-beautify';
 import { resizeAndCompressImage } from "../utils/compressImage";
+import toast from "react-hot-toast";
 
 export default function Home() {
   const [clientName, setClientName] = useState("");
@@ -64,7 +65,7 @@ export default function Home() {
   const processContent = async () => {
     const cleanClientName = formatName(clientName.trim());
     if (!cleanClientName) {
-      alert("Please enter a client name first.");
+      toast.error("Please Enter Client Name First")
       return;
     }
 
@@ -157,9 +158,10 @@ export default function Home() {
 
       localStorage.setItem("lastClient", cleanClientName);
       localStorage.setItem(storageKey, lastIndex + images.length);
+      toast.success("Content Processed")
     } catch (error) {
       console.error("Processing failed:", error);
-      alert("Error processing content. Please check the console.");
+      toast.error("Error processing content. Please check the console.");
     } finally {
       setIsProcessing(false);
     }
@@ -174,7 +176,8 @@ export default function Home() {
             description: 'Image Files',
             accept: { [`image/${image.format}`]: [`.${image.format}`] }
           }]
-        });
+        }
+      );
         const writable = await handle.createWritable();
         await writable.write(await fetch(image.url).then(r => r.blob()));
         await writable.close();
@@ -186,10 +189,11 @@ export default function Home() {
         link.click();
         document.body.removeChild(link);
       }
+      toast.success("Image Downloaded")
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error("Download failed:", error);
-        alert(`Download failed: ${error.message}`);
+        toast.error(`Download failed: ${error.message}`);
       }
     }
   };
@@ -383,10 +387,11 @@ export default function Home() {
         navigator.clipboard.writeText(beautifiedHTML).then(() => {
           setTimeout(() => {
             setIsCopying(false); // Reset button text after 2 seconds
+            toast.success("HMTL Copied to Clipboard")
           }, 50);
         }).catch((error) => {
           console.error('Failed to copy:', error);
-          alert('Failed to copy formatted HTML content.');
+          toast.error('Failed to copy formatted HTML content.');
         });
       } else {
         const textArea = document.createElement("textarea");
@@ -397,11 +402,11 @@ export default function Home() {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('Formatted HTML content copied to clipboard!');
+        toast.success('Formatted HTML content copied to clipboard!');
       }
     } catch (error) {
       console.error('Error copying formatted HTML:', error);
-      alert('An error occurred while copying formatted HTML content.');
+      toast.error('An error occurred while copying formatted HTML content.');
     }
   };
 
@@ -410,7 +415,7 @@ export default function Home() {
 
 
   return (
-    <main className="min-h-screen bg-[#e9e9e9] text-white flex flex-col items-center p-6">
+    <main className="min-h-screen  bg-[#e9e9e9] text-white flex flex-col items-center p-6">
       
 
       <div className="getClient flex items-center justify-start self-start mb-1 gap-x-5">
@@ -479,7 +484,7 @@ export default function Home() {
       </div>
 
 
-      <div className="textHandle w-full h-[69vh] flex items-center justify-center gap-x-5">
+      <div className="textHandle  w-full h-[69vh] flex items-center justify-center gap-x-5">
         <div
           ref={contentEditableRef}
           className="w-1/2 h-[67vh] border-2 border-dashed border-white rounded-lg p-6 mb-6 
@@ -499,8 +504,7 @@ export default function Home() {
           />
         </div>
       </div>
-
-
+          {/* Mark */}
 
 
 

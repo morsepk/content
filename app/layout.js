@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Content Processor - MIT Solutions developed by Mark Maverick",
-  description: "A Tool to Make Article Writer's Life Easy."
+  title: "Content Processor - Mark",
+  description: "Developed by Mark(Muhammad Ahmed Raza)."
 };
 
 export default function RootLayout({ children }) {
@@ -23,6 +24,9 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <div>
+          <Toaster position="top-right" reverseOrder={false} />
+        </div>
       </body>
     </html>
   );
